@@ -1,6 +1,7 @@
-import { body } from 'express-validator';
+const body = require('express-validator').body;
+const { validationResult } = require('express-validator');
 
-export function validate(req,res,next){
+const validate = function(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -8,7 +9,7 @@ export function validate(req,res,next){
   next();
 } 
 
-export const validateRegister = [
+const validateRegister = [
   body('username')
     .trim()
     .notEmpty()
@@ -36,3 +37,21 @@ export const validateRegister = [
     validate
 ];
 
+const validateLogin = [
+  body('emailorusername')
+    .trim()
+    .notEmpty()
+    .withMessage('Email or username is required'),
+
+  body('password')
+    .trim()
+    .notEmpty()
+    .withMessage('Password is required'),
+
+    validate
+];
+
+module.exports = { 
+  validateRegister, 
+  validateLogin 
+};
