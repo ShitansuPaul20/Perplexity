@@ -1,9 +1,9 @@
-import { Router } from "express";
+const { Router } = require('express');
+const { register } = require('../controller/auth.controller');
 
 const authRouter = Router();
 
-authRouter.post('/register', async (req, res) => {
-  res.send('User registration endpoint');
-});
+authRouter.post('/register', register);
 
-export default authRouter;
+
+module.exports = authRouter;
