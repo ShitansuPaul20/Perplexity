@@ -119,6 +119,7 @@ async function login(req, res) {
     res.status(200).json({ 
       message: 'Login successful',
       success: true,
+      user
     });
 
   } catch (err) {

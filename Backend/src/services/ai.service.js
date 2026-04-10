@@ -6,12 +6,12 @@ const model = new ChatGoogleGenerativeAI({
 });
 
 async function testAI(prompt) {
-    model.invoke("What is AI explain under 100 words?")
-    .then((response) => {
-        console.log(response.content);
-    }).catch((error) => {        
-        console.error("Error:", error);
-    });
+    // model.invoke("What is AI explain under 100 words?")
+    // .then((response) => {
+    //     console.log(response.content);
+    // }).catch((error) => {        
+    //     console.error("Error:", error);
+    // });
 }
 
 module.exports = { testAI };
