@@ -3,21 +3,18 @@ import { useChat } from '../hooks/useChat'
 import Sidebar from '../components/Sidebar'
 import ChatArea from '../components/ChatArea'
 import { Menu } from 'lucide-react'
-import { useSelector } from 'react-redux'
 
 const Dashboard = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const { initializeSocketConnection } = useChat()
+    const { initializeSocketConnection, handleGetAllChats } = useChat()
 
     useEffect(() => {
         initializeSocketConnection()
+        handleGetAllChats()       // reload pe sare chats fetch ho jayenge
     }, [])
 
-    const state = useSelector(state => state)
-    console.log(state)
-
     return (
-        <main className="h-screen w-full flex bg-[#141414] overflow-hidden">
+        <main className="h-screen w-full flex bg-[#141414] overflow-hidden  scrollbar-hide [&::-webkit-scrollbar]:hidden">
 
             <Sidebar
                 isOpen={sidebarOpen}
@@ -26,7 +23,7 @@ const Dashboard = () => {
 
             <div className="flex-1 flex flex-col min-w-0">
 
-                {/* Mobile Header - sirf mobile pe */}
+                {/* Mobile Header */}
                 <div className="flex items-center px-4 py-3 border-b border-white/8 lg:hidden">
                     <button
                         onClick={() => setSidebarOpen(true)}

@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { setCurrentChatId } from '../chat.slice'
+import { useChat } from '../hooks/useChat'
 import { MessageSquare, Plus, Trash2, Settings, X } from 'lucide-react'
 
 const Sidebar = ({ isOpen, onToggle }) => {
     const dispatch = useDispatch()
+    const { handleGetMessages, handleDeleteChat } = useChat()
     const { chats, currentChatId } = useSelector(state => state.chat)
-    // user remove kiya - use nahi ho raha tha
     const [hoveredChat, setHoveredChat] = useState(null)
 
     const chatList = Object.values(chats).sort(
@@ -14,13 +15,23 @@ const Sidebar = ({ isOpen, onToggle }) => {
     )
 
     const handleSelectChat = (chatId) => {
-        dispatch(setCurrentChatId(chatId))
+        const chat = chats[chatId]
+        if (chat?.messages?.length > 0) {
+            dispatch(setCurrentChatId(chatId))
+        } else {
+            handleGetMessages(chatId)
+        }
         onToggle()
     }
 
     const handleNewChat = () => {
         dispatch(setCurrentChatId(null))
         onToggle()
+    }
+
+    const handleDelete = (e, chatId) => {
+        e.stopPropagation()
+        handleDeleteChat(chatId)
     }
 
     return (
@@ -42,9 +53,7 @@ const Sidebar = ({ isOpen, onToggle }) => {
                 `}
             >
                 <div className="flex items-center justify-between px-4 py-4 border-b border-white/8">
-                    <h1 className="text-white text-lg font-semibold tracking-wider">
-                        Lumina
-                    </h1>
+                    <h1 className="text-white text-lg font-semibold tracking-wider">Lumina</h1>
                     <button
                         onClick={onToggle}
                         className="text-white/40 hover:text-white transition-colors lg:hidden"
@@ -95,7 +104,7 @@ const Sidebar = ({ isOpen, onToggle }) => {
 
                             {hoveredChat === chat._id && (
                                 <button
-                                    onClick={(e) => e.stopPropagation()}
+                                    onClick={(e) => handleDelete(e, chat._id)}
                                     className="shrink-0 text-white/30 hover:text-red-400 transition-colors ml-1"
                                 >
                                     <Trash2 size={13} />

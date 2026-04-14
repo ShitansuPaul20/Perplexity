@@ -2,8 +2,70 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useChat } from '../hooks/useChat'
 import { createNewChat, addNewMessage, setCurrentChatId } from '../chat.slice'
-import { Send, Mic, Plus, User, Bot } from 'lucide-react'
+import { Send, Mic, Plus, User } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+
+// Custom AI Logo
+const AILogo = () => (
+    <div className="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center shrink-0 p-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+            <path d="M20.0833 10.4999L21.2854 11.2212C21.5221 11.3633 21.5989 11.6704 21.4569 11.9072C21.4146 11.9776 21.3557 12.0365 21.2854 12.0787L11.9999 17.6499L2.71451 12.0787C2.47772 11.9366 2.40093 11.6295 2.54301 11.3927C2.58523 11.3223 2.64413 11.2634 2.71451 11.2212L3.9166 10.4999L11.9999 15.3499L20.0833 10.4999ZM20.0833 15.1999L21.2854 15.9212C21.5221 16.0633 21.5989 16.3704 21.4569 16.6072C21.4146 16.6776 21.3557 16.7365 21.2854 16.7787L12.5144 22.0412C12.1977 22.2313 11.8021 22.2313 11.4854 22.0412L2.71451 16.7787C2.47772 16.6366 2.40093 16.3295 2.54301 16.0927C2.58523 16.0223 2.64413 15.9634 2.71451 15.9212L3.9166 15.1999L11.9999 20.0499L20.0833 15.1999ZM12.5144 1.30864L21.2854 6.5712C21.5221 6.71327 21.5989 7.0204 21.4569 7.25719C21.4146 7.32757 21.3557 7.38647 21.2854 7.42869L11.9999 12.9999L2.71451 7.42869C2.47772 7.28662 2.40093 6.97949 2.54301 6.7427C2.58523 6.67232 2.64413 6.61343 2.71451 6.5712L11.4854 1.30864C11.8021 1.11864 12.1977 1.11864 12.5144 1.30864Z"/>
+        </svg>
+    </div>
+)
+
+// Animated AI message
+const AnimatedMessage = ({ content, isNew }) => {
+    const [displayed, setDisplayed] = useState(isNew ? '' : content)
+
+    useEffect(() => {
+        if (!isNew) {
+            setDisplayed(content)
+            return
+        }
+        setDisplayed('')
+        let i = 0
+        const interval = setInterval(() => {
+            if (i >= content.length) {
+                clearInterval(interval)
+                setDisplayed(content)
+                return
+            }
+            setDisplayed(content.slice(0, i + 1))
+            i++
+        }, 8)
+        return () => clearInterval(interval)
+    }, [content, isNew])
+
+    return (
+        <ReactMarkdown
+            components={{
+                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                strong: ({ children }) => <strong className="text-white/95 font-semibold">{children}</strong>,
+                em: ({ children }) => <em className="text-white/80 italic">{children}</em>,
+                h1: ({ children }) => <h1 className="text-white/90 text-base font-semibold mt-3 mb-1">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-white/90 text-sm font-semibold mt-3 mb-1">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-white/90 text-sm font-medium mt-2 mb-1">{children}</h3>,
+                ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
+                li: ({ children }) => <li className="text-white/75">{children}</li>,
+                code: ({ inline, children }) =>
+                    inline ? (
+                        <code className="bg-white/10 text-white/90 px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>
+                    ) : (
+                        <pre className="bg-black/30 rounded-lg p-3 mt-2 mb-2 overflow-x-auto">
+                            <code className="text-white/85 text-xs font-mono">{children}</code>
+                        </pre>
+                    ),
+                blockquote: ({ children }) => (
+                    <blockquote className="border-l-2 border-white/20 pl-3 italic text-white/60 my-2">{children}</blockquote>
+                ),
+            }}
+        >
+            {displayed}
+        </ReactMarkdown>
+    )
+}
 
 const ChatArea = () => {
     const { handleSendMessage } = useChat()
@@ -13,6 +75,8 @@ const ChatArea = () => {
     const { user } = useSelector(state => state.auth)
 
     const [input, setInput] = useState('')
+    // Unique ID store karo — sirf is session mein jo naya AI message aaya uska
+    const [newAiMsgId, setNewAiMsgId] = useState(null)
     const messagesEndRef = useRef(null)
     const textareaRef = useRef(null)
 
@@ -23,6 +87,11 @@ const ChatArea = () => {
     const currentChatTitle = currentChatId && chats[currentChatId]
         ? chats[currentChatId].title
         : 'New Chat'
+
+    // Jab chat switch ho toh animation reset karo
+    useEffect(() => {
+        setNewAiMsgId(null)
+    }, [currentChatId])
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -40,6 +109,7 @@ const ChatArea = () => {
         if (!input.trim() || isloading) return
         const message = input.trim()
         setInput('')
+        setNewAiMsgId(null) // reset pehle
 
         if (!currentChatId) {
             const tempId = 'temp_' + Date.now()
@@ -47,14 +117,17 @@ const ChatArea = () => {
             dispatch(setCurrentChatId(tempId))
             dispatch(addNewMessage({ chatId: tempId, content: message, role: 'user' }))
             try {
-                await handleSendMessage(message, null, tempId)
+                // handleSendMessage se naya AI message ka unique ID milega
+                const aiMsgId = await handleSendMessage(message, null, tempId)
+                setNewAiMsgId(aiMsgId)
             } catch {
                 // error state mein already set hai
             }
         } else {
             dispatch(addNewMessage({ chatId: currentChatId, content: message, role: 'user' }))
             try {
-                await handleSendMessage(message, currentChatId)
+                const aiMsgId = await handleSendMessage(message, currentChatId)
+                setNewAiMsgId(aiMsgId)
             } catch {
                 // error state mein already set hai
             }
@@ -75,17 +148,19 @@ const ChatArea = () => {
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
                 <span className="text-white/50 text-sm truncate">{currentChatTitle}</span>
                 <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white/70 text-xs font-medium shrink-0">
-                    {user?.name?.[0]?.toUpperCase() || 'U'}
+                    {user?.username?.[0]?.toUpperCase() || 'U'}
                 </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5 custom-scrollbar min-h-0">
 
                 {!currentChatId && currentMessages.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-full text-center">
-                        <div className="mb-3 w-12 h-12 rounded-2xl bg-white/8 flex items-center justify-center">
-                            <Bot size={22} className="text-white/50" />
+                        <div className="mb-3 w-12 h-12 rounded-2xl bg-emerald-300 flex items-center justify-center p-2.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+                                <path d="M20.0833 10.4999L21.2854 11.2212C21.5221 11.3633 21.5989 11.6704 21.4569 11.9072C21.4146 11.9776 21.3557 12.0365 21.2854 12.0787L11.9999 17.6499L2.71451 12.0787C2.47772 11.9366 2.40093 11.6295 2.54301 11.3927C2.58523 11.3223 2.64413 11.2634 2.71451 11.2212L3.9166 10.4999L11.9999 15.3499L20.0833 10.4999ZM20.0833 15.1999L21.2854 15.9212C21.5221 16.0633 21.5989 16.3704 21.4569 16.6072C21.4146 16.6776 21.3557 16.7365 21.2854 16.7787L12.5144 22.0412C12.1977 22.2313 11.8021 22.2313 11.4854 22.0412L2.71451 16.7787C2.47772 16.6366 2.40093 16.3295 2.54301 16.0927C2.58523 16.0223 2.64413 15.9634 2.71451 15.9212L3.9166 15.1999L11.9999 20.0499L20.0833 15.1999ZM12.5144 1.30864L21.2854 6.5712C21.5221 6.71327 21.5989 7.0204 21.4569 7.25719C21.4146 7.32757 21.3557 7.38647 21.2854 7.42869L11.9999 12.9999L2.71451 7.42869C2.47772 7.28662 2.40093 6.97949 2.54301 6.7427C2.58523 6.67232 2.64413 6.61343 2.71451 6.5712L11.4854 1.30864C11.8021 1.11864 12.1977 1.11864 12.5144 1.30864Z"/>
+                            </svg>
                         </div>
                         <p className="text-white/40 text-sm">Hi {user?.name || 'there'},</p>
                         <h2 className="text-white/80 text-xl font-medium mt-1">Where should we start?</h2>
@@ -93,15 +168,18 @@ const ChatArea = () => {
                 )}
 
                 {currentMessages.map((msg, index) => (
-                    <MessageBubble key={index} message={msg} />
+                    <MessageBubble
+                        key={msg._id || index}
+                        message={msg}
+                        // Sirf tabhi animate karo jab ye naya AI message ho is session mein
+                        isNew={msg.role === 'ai' && msg._id === newAiMsgId}
+                    />
                 ))}
 
                 {isloading && (
                     <div className="flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                            <Bot size={14} className="text-white/50" />
-                        </div>
-                        <div className="bg-white/7 rounded-2xl rounded-tl-sm px-4 py-3">
+                        <AILogo />
+                        <div className="px-1 py-3">
                             <div className="flex gap-1 items-center h-4">
                                 <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                                 <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -160,57 +238,30 @@ const ChatArea = () => {
     )
 }
 
-const MessageBubble = ({ message }) => {
+const MessageBubble = ({ message, isNew }) => {
     const isUser = message.role === 'user'
 
     return (
         <div className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0
-                            ${isUser ? 'bg-white/20' : 'bg-white/10'}`}>
-                {isUser
-                    ? <User size={13} className="text-white/70" />
-                    : <Bot size={13} className="text-white/50" />
-                }
-            </div>
+            {isUser ? (
+                <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                    <User size={13} className="text-white/70" />
+                </div>
+            ) : (
+                <AILogo />
+            )}
 
             <div className={`
-                max-w-[72%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed
+                max-w-[72%] text-sm leading-relaxed
                 ${isUser
-                    ? 'bg-white/15 text-white/90 rounded-tr-sm'
-                    : 'bg-white/7 text-white/75 rounded-tl-sm'
+                    ? 'bg-white/15 text-white/90 rounded-2xl rounded-tr-sm px-4 py-2.5'
+                    : 'text-white/75'
                 }
             `}>
                 {isUser ? (
-                    // User message - plain text
                     message.content
                 ) : (
-                    // AI message - markdown render karo
-                    <ReactMarkdown
-                        components={{
-                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                            strong: ({ children }) => <strong className="text-white/95 font-semibold">{children}</strong>,
-                            em: ({ children }) => <em className="text-white/80 italic">{children}</em>,
-                            h1: ({ children }) => <h1 className="text-white/90 text-base font-semibold mt-3 mb-1">{children}</h1>,
-                            h2: ({ children }) => <h2 className="text-white/90 text-sm font-semibold mt-3 mb-1">{children}</h2>,
-                            h3: ({ children }) => <h3 className="text-white/90 text-sm font-medium mt-2 mb-1">{children}</h3>,
-                            ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
-                            ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
-                            li: ({ children }) => <li className="text-white/75">{children}</li>,
-                            code: ({ inline, children }) =>
-                                inline ? (
-                                    <code className="bg-white/10 text-white/90 px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>
-                                ) : (
-                                    <pre className="bg-black/30 rounded-lg p-3 mt-2 mb-2 overflow-x-auto">
-                                        <code className="text-white/85 text-xs font-mono">{children}</code>
-                                    </pre>
-                                ),
-                            blockquote: ({ children }) => (
-                                <blockquote className="border-l-2 border-white/20 pl-3 italic text-white/60 my-2">{children}</blockquote>
-                            ),
-                        }}
-                    >
-                        {message.content}
-                    </ReactMarkdown>
+                    <AnimatedMessage content={message.content} isNew={isNew} />
                 )}
             </div>
         </div>

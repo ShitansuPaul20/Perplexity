@@ -14,7 +14,6 @@ export const getAllChats = async () => {
         console.error("Error fetching chats:", error)
         throw error
     }
-
 }
  
 export const getMessagesByChatId = async (chatId) => {
@@ -38,7 +37,7 @@ export const sendMessage = async ({messageData, chatId}) => {
     }
 }
  
-export const deleteChat = async (chatId) => {
+export const deleteChatapi = async (chatId) => {
     try {
         const response = await API.delete(`/delete/${chatId}`)
         return response
